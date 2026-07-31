@@ -1,10 +1,10 @@
 import { defineConfig } from 'tsdown';
 
-// Subpath entries (./usb, ./cups, ./image, ./cli) land here as they are built —
-// see the roadmap in the PRD. Keeping the list honest means `npm pack` never
-// ships an export that resolves to nothing.
+// Every entry here has a matching subpath in package.json, and nothing is
+// declared there that is not built here — otherwise `npm pack` ships an export
+// that resolves to nothing. ./image and ./cli join the list with M3 and M4.
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/usb.ts', 'src/cups.ts', 'src/file.ts'],
   format: ['esm', 'cjs'],
   dts: true,
   clean: true,

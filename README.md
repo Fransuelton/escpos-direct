@@ -6,8 +6,8 @@ endpoint** — no CUPS, no print queue, no spooler mangling your bytes.
 > 🇧🇷 [Leia em português](README.pt-BR.md) — including the "why won't my Mac
 > print accents" section that started this project.
 
-**Status: early.** The encoder core is done and tested; transports are landing
-next. See [Roadmap](#roadmap).
+**Status: early.** The encoder core and the transports are done and tested;
+images, barcodes and the CLI are next. See [Roadmap](#roadmap).
 
 ```ts
 import { Receipt, mm58 } from 'escpos-direct';
@@ -23,6 +23,15 @@ const receipt = new Receipt(mm58)
   .feed();                                   // clears the tear bar
 
 const bytes = receipt.encode();              // Uint8Array — no hardware needed
+```
+
+Then send it:
+
+```ts
+import { UsbTransport } from 'escpos-direct/usb';
+
+await using printer = await UsbTransport.open();
+await printer.write(bytes);
 ```
 
 ## Why this exists
@@ -67,6 +76,49 @@ The core has **zero dependencies** and compiles nothing. `usb` is an optional
 dependency, pulled in only if you use the USB transport — and it ships
 prebuilt binaries, so there is no native build step.
 
+## Transports
+
+The encoder is pure and the delivery is swappable, so choosing a transport
+never changes how a receipt is built.
+
+| Import | How it prints | When to use it |
+|---|---|---|
+| `escpos-direct/usb` | Bulk endpoint via WebUSB | The default. Same file runs in Chrome — pass `{ usb: navigator.usb }` |
+| `escpos-direct/cups` | `lp -o raw` | Where claiming the interface fails: Windows, Linux without a udev rule, shared queues |
+| `escpos-direct/file` | Writes to a path | `/dev/usb/lp0` on Linux, or capturing a payload to diff |
+
+`await using` is not sugar. It releases the interface when the block ends, and
+releasing is the condition for CUPS to keep working afterwards — without it, one
+thrown exception leaves the printer claimed until the process dies.
+
+```ts
+await using printer = await UsbTransport.open({ vendorId: 0x09c5 });
+await printer.write(bytes);
+```
+
+### Errors tell you what to do next
+
+Every failure is an `EscposError` with a `code` your program can branch on, a
+`cause` for the log, and a **`hint` for the human** — the platform-specific
+sentence that would otherwise cost an afternoon:
+
+```ts
+import { isEscposError } from 'escpos-direct';
+
+try {
+  await using printer = await UsbTransport.open();
+  await printer.write(bytes);
+} catch (e) {
+  if (!isEscposError(e)) throw e;
+  console.error(e.code);     // 'CLAIM_FAILED'
+  console.error(e.format()); // ...and, on Linux: "The kernel `usblp` driver
+                             //    usually holds the interface: sudo modprobe -r usblp"
+}
+```
+
+Codes: `DEVICE_NOT_FOUND`, `CLAIM_FAILED`, `OUT_OF_PAPER`, `OFFLINE`,
+`WRITE_FAILED`, `UNSUPPORTED`.
+
 ## Does direct USB actually work on macOS?
 
 Yes — verified on macOS 26.5.2 (Apple Silicon), Node 24, against a YiDa YD583:
@@ -89,7 +141,7 @@ transport does for you via `await using`.
 ## Roadmap
 
 - [x] **M1** — encoder core: columns, wrapping, code pages, profiles
-- [ ] **M2** — transports: USB (WebUSB), CUPS fallback, file
+- [x] **M2** — transports: USB (WebUSB), CUPS fallback, file; typed errors with hints
 - [ ] **M3** — images (raster + dithering), QR codes (PIX), barcodes, `DLE EOT` status
 - [ ] **M4** — CLI: `devices`, `doctor`, `test`, `print`, `preview`
 - [ ] **M5** — v1.0
@@ -101,7 +153,7 @@ design is based on; they run today against a real printer.
 
 ```bash
 npm install
-npm test              # 38 tests, no printer required
+npm test              # 63 tests, no printer required
 npm run typecheck
 npm run build
 npm run gen:codepages # regenerate code page tables from the system iconv
