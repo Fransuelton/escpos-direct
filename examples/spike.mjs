@@ -1,107 +1,138 @@
 /**
- * M0 — spike de viabilidade: dá para reivindicar a interface da YD583 e
- * escrever ESC/POS direto no endpoint, no macOS, sem root?
+ * Feasibility spike: can we claim the printer interface and write ESC/POS
+ * straight to the endpoint, on macOS, without root?
  *
- *   node spike.mjs          # só diagnostica, não escreve nada
- *   node spike.mjs --write  # imprime de verdade (gasta papel)
+ *   node spike.mjs          # diagnose only, writes nothing
+ *   node spike.mjs --write  # actually prints (spends paper)
  *
- * node-usb 3.x expõe SÓ a API WebUSB — a legada (getDeviceList/findByIds) saiu.
+ * This is the experiment the library is built on, kept as an example because it
+ * is evidence rather than decoration: every claim in the README about macOS was
+ * measured with this file.
+ *
+ * node-usb 3.x exposes ONLY the WebUSB API — the legacy one (getDeviceList,
+ * findByIds) is gone. Tutorials still teaching it are writing against a version
+ * that no longer exists.
+ *
+ * Requires the optional peer: `npm install usb`.
  */
 import { WebUSB } from 'usb';
 
-const VID = 0x09c5, PID = 0x583e;
-const ESCREVER = process.argv.includes('--write');
+const VID = 0x09c5,
+  PID = 0x583e;
+const WRITE = process.argv.includes('--write');
 
 const ok = (m) => console.log(`  ✅ ${m}`);
 const nok = (m) => console.log(`  ❌ ${m}`);
 const info = (m) => console.log(`  ·  ${m}`);
 
-console.log(`\nnode ${process.version} · ${process.platform}/${process.arch} · root=${process.getuid() === 0}`);
-console.log(`node-usb ${(await import('usb/package.json', { with: { type: 'json' } })).default.version}\n`);
+console.log(
+  `\nnode ${process.version} · ${process.platform}/${process.arch} · root=${process.getuid() === 0}`,
+);
+console.log(
+  `node-usb ${(await import('usb/package.json', { with: { type: 'json' } })).default.version}\n`,
+);
 
-// ── 1. enumerar ────────────────────────────────────────────────────────────
-console.log('1) enumerar barramento');
+// ── 1. enumerate ───────────────────────────────────────────────────────────
+console.log('1) enumerate the bus');
 const webusb = new WebUSB({ allowAllDevices: true });
-const todos = await webusb.getDevices();
-ok(`getDevices() → ${todos.length} dispositivos`);
+const all = await webusb.getDevices();
+ok(`getDevices() → ${all.length} devices`);
 
-const dev = todos.find((d) => d.vendorId === VID && d.productId === PID);
+const dev = all.find((d) => d.vendorId === VID && d.productId === PID);
 if (!dev) {
-  nok('YD583 (09c5:583e) não encontrada');
+  nok('printer 09c5:583e not found');
   process.exit(1);
 }
-ok(`YD583: "${dev.manufacturerName ?? '?'} ${dev.productName ?? '?'}" serial=${dev.serialNumber ?? '?'}`);
+ok(
+  `found: "${dev.manufacturerName ?? '?'} ${dev.productName ?? '?'}" serial=${dev.serialNumber ?? '?'}`,
+);
 
-// ── 2. abrir ───────────────────────────────────────────────────────────────
-console.log('\n2) open() sem root');
+// ── 2. open ────────────────────────────────────────────────────────────────
+console.log('\n2) open() without root');
 try {
   await dev.open();
-  ok('open() passou');
+  ok('open() succeeded');
 } catch (e) {
-  nok(`open() falhou: ${e.message}`);
-  info('→ USB direto exigiria root/entitlement. Tese do PRD em risco.');
+  nok(`open() failed: ${e.message}`);
+  info('→ direct USB would need root or an entitlement. The premise is at risk.');
   process.exit(2);
 }
 
 if (!dev.configuration) await dev.selectConfiguration(1);
-ok(`configuração ${dev.configuration.configurationValue} selecionada`);
+ok(`configuration ${dev.configuration.configurationValue} selected`);
 
-// ── 3. interface e endpoints ───────────────────────────────────────────────
-console.log('\n3) interface e endpoints');
+// ── 3. interface and endpoints ─────────────────────────────────────────────
+console.log('\n3) interface and endpoints');
 const iface = dev.configuration.interfaces[0];
 const alt = iface.alternate;
-info(`interface ${iface.interfaceNumber}: class=${alt.interfaceClass} sub=${alt.interfaceSubclass} proto=${alt.interfaceProtocol}`);
-if (alt.interfaceClass === 7) ok('classe 7 = impressora, como o ioreg mostrou');
+info(
+  `interface ${iface.interfaceNumber}: class=${alt.interfaceClass} sub=${alt.interfaceSubclass} proto=${alt.interfaceProtocol}`,
+);
+if (alt.interfaceClass === 7) ok('class 7 = printer, matching what ioreg reported');
 
 for (const ep of alt.endpoints) {
   info(`endpoint ${ep.endpointNumber} ${ep.direction} ${ep.type} packetSize=${ep.packetSize}`);
 }
 
 // ── 4. claim ───────────────────────────────────────────────────────────────
-console.log('\n4) claimInterface() — o teste que decide o projeto');
+console.log('\n4) claimInterface() — the test that decides the project');
 try {
   await dev.claimInterface(iface.interfaceNumber);
-  ok('claim PASSOU sem root, com a fila CUPS habilitada');
+  ok('claim SUCCEEDED without root, with the CUPS queue still enabled');
 } catch (e) {
-  nok(`claim falhou: ${e.message}`);
-  info('→ testar: cupsdisable YiDa_YD583 → sudo → lpadmin -x');
+  nok(`claim failed: ${e.message}`);
+  info('→ try: cupsdisable <queue>, then sudo, then lpadmin -x');
   await dev.close();
   process.exit(3);
 }
 
-// ── 5. escrever ────────────────────────────────────────────────────────────
-console.log('\n5) escrita no endpoint bulk OUT');
+// ── 5. write ───────────────────────────────────────────────────────────────
+console.log('\n5) writing to the bulk OUT endpoint');
 const out = alt.endpoints.find((e) => e.direction === 'out' && e.type === 'bulk');
-if (!out) { nok('sem endpoint bulk OUT'); process.exit(4); }
+if (!out) {
+  nok('no bulk OUT endpoint');
+  process.exit(4);
+}
 ok(`endpoint OUT ${out.endpointNumber}`);
 
-// CP850 só para o teste — a lib terá tabela de verdade (ADR-02).
-const CP850 = { á: 0xa0, é: 0x82, í: 0xa1, ó: 0xa2, ú: 0xa3, â: 0x83, ê: 0x88, ô: 0x93, ã: 0xc6, õ: 0xe4, ç: 0x87, Ç: 0x80 };
+// A hand-rolled CP850 table, enough for this one test. The library ships real
+// generated tables — this is here so the spike depends on nothing.
+const CP850 = {
+  á: 0xa0, é: 0x82, í: 0xa1, ó: 0xa2, ú: 0xa3,
+  â: 0x83, ê: 0x88, ô: 0x93, ã: 0xc6, õ: 0xe4,
+  ç: 0x87, Ç: 0x80,
+};
 const cp850 = (s) => Buffer.from([...s].map((c) => CP850[c] ?? c.charCodeAt(0)));
 
+// The sample lines stay in Portuguese on purpose: accented Latin text is the
+// thing being tested, and it is what sent this project looking for answers.
 const payload = Buffer.concat([
-  Buffer.from([0x1b, 0x40]),        // ESC @  reset
-  Buffer.from([0x1b, 0x74, 0x02]),  // ESC t 2 = CP850, DEPOIS do reset (A2)
-  cp850('ESCPOS-DIRECT / M0\n'),
+  Buffer.from([0x1b, 0x40]), // ESC @  reset
+  Buffer.from([0x1b, 0x74, 0x02]), // ESC t 2 = CP850, AFTER the reset, which clears it
+  cp850('ESCPOS-DIRECT / SPIKE\n'),
   cp850('--------------------------------\n'),
-  cp850('Acentuação: ção nao é açaí\n'),
+  cp850('Acentuação: ção não é açaí\n'),
   cp850('Coração, pão, ôvo, Ç\n'),
   cp850('--------------------------------\n'),
-  cp850('claim sem root: OK\n'),
-  cp850('sem CUPS no caminho\n'),
-  Buffer.from([0x0a, 0x0a, 0x0a, 0x0a]), // sem guilhotina (A5)
+  cp850('claimed without root: OK\n'),
+  cp850('no CUPS in the way\n'),
+  Buffer.from([0x0a, 0x0a, 0x0a, 0x0a]), // trailing feed — there is no cutter
 ]);
 
-if (!ESCREVER) {
-  info(`payload de ${payload.length} bytes pronto — rode com --write para imprimir`);
+if (!WRITE) {
+  info(`${payload.length} byte payload ready — run with --write to print it`);
 } else {
   const r = await dev.transferOut(out.endpointNumber, payload);
-  ok(`transferOut → status=${r.status}, ${r.bytesWritten}/${payload.length} bytes, direto no endpoint`);
+  ok(
+    `transferOut → status=${r.status}, ${r.bytesWritten}/${payload.length} bytes, straight to the endpoint`,
+  );
 }
 
-// ── 6. liberar ─────────────────────────────────────────────────────────────
-console.log('\n6) liberar');
+// ── 6. release ─────────────────────────────────────────────────────────────
+// Not optional: leaving the interface claimed is what stops CUPS from printing
+// afterwards.
+console.log('\n6) release');
 await dev.releaseInterface(iface.interfaceNumber);
 await dev.close();
 ok('released + closed');
-console.log(`\n${ESCREVER ? '🎯' : '🔎'} claim sem root: VIÁVEL no macOS ${process.platform}.\n`);
+console.log(`\n${WRITE ? '🎯' : '🔎'} claiming without root: VIABLE on ${process.platform}.\n`);
