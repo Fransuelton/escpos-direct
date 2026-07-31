@@ -60,12 +60,16 @@ docs: cli
 Atomic commits, please — one coherent change each, even when several land in the
 same PR. It makes `git bisect` and a surgical revert possible later.
 
-Add a changeset describing the user-visible effect:
+If your change affects someone using the library, add a changeset describing the
+effect:
 
 ```bash
 npm run changeset
-npx changeset add --empty   # for tooling or docs, which ship no release
 ```
+
+If it does not — tooling, CI, internal docs — skip it. Nothing here requires
+every pull request to carry one, so an empty changeset would just be a file
+created to be deleted later.
 
 ## What gets tested where
 
