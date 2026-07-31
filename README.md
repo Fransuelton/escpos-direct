@@ -141,6 +141,32 @@ interface is free to claim.
 CUPS keeps working afterwards, as long as the interface is released — which the
 transport does for you via `await using`.
 
+## Images
+
+```ts
+receipt.align('center').image(logo, { dither: 'atkinson' });
+```
+
+Takes raw RGBA pixels — the same shape as the browser's `ImageData`, so a canvas
+goes straight in. Decoding PNG or JPEG is not the core's job: that would cost a
+native dependency and the promise that it runs anywhere.
+
+| Dither | Use it for |
+|---|---|
+| `atkinson` (default) | Logos and line art — highest contrast |
+| `floyd-steinberg` | Photographs and smooth gradients |
+| `bayer` | Fast, regular crosshatch texture |
+| `none` | Already-black-and-white input |
+
+**Atkinson propagates only 6/8 of the error and discards the rest.** That is what
+keeps contrast high, and it is also why it drops detail at the extremes: printed
+against a full gradient, Atkinson stops placing dots near the pale end while
+Floyd-Steinberg carries all the way through. Contrast is the right trade for a
+logo; detail is the right trade for a photograph.
+
+An image wider than the paper throws rather than printing, since the printer
+would silently clip it and a logo missing its right edge survives a proof read.
+
 ## Barcodes and QR codes
 
 ```ts
@@ -219,7 +245,7 @@ This is the part nobody documents, which is exactly why it is written down here.
 
 - [x] **M1** — encoder core: columns, wrapping, code pages, profiles
 - [x] **M2** — transports: USB (WebUSB), CUPS fallback, file; typed errors with hints
-- [ ] **M3** — [x] `DLE EOT` status · [x] QR codes (PIX) · [x] barcodes · [ ] images (raster + dithering)
+- [x] **M3** — `DLE EOT` status, QR codes (PIX), barcodes, images with dithering
 - [ ] **M4** — CLI: `devices`, `doctor`, `test`, `print`, `preview`
 - [ ] **M5** — v1.0
 
