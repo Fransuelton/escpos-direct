@@ -26,6 +26,7 @@ export {
   type Symbology,
   type HriPosition,
 } from './barcode.js';
+export { qr, type QrOptions, type ErrorCorrection } from './qr.js';
 export * as commands from './commands.js';
 export {
   EscposError,

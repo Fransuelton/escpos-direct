@@ -12,6 +12,7 @@ import { barcode, type BarcodeOptions } from './barcode.js';
 import * as cmd from './commands.js';
 import { encode, selectCodePage, type CodePage } from './codepage/index.js';
 import { mm58, type Profile } from './profile.js';
+import { qr, type QrOptions } from './qr.js';
 import { itemLines, pad, sanitize, truncate, wrap } from './text.js';
 
 export type Align = 'left' | 'center' | 'right';
@@ -170,6 +171,16 @@ export class Receipt {
    */
   barcode(data: string, options: BarcodeOptions = {}): this {
     return this.#push(barcode(data, options));
+  }
+
+  /**
+   * A QR code. Takes the payload verbatim — a PIX BR Code goes straight in.
+   *
+   * Bytes are written raw, bypassing the code page, because the scanner is what
+   * decides how to read them.
+   */
+  qr(data: string, options: QrOptions = {}): this {
+    return this.#push(qr(data, options));
   }
 
   // ── raw / output ─────────────────────────────────────────────────────────
