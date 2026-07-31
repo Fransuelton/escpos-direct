@@ -1,0 +1,21 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+._*
+
+# editores
+.vscode/
+.idea/
+*.swp
+
+# npm
+*.tgz
+.npmrc
+
+/PRD-*.md
+
+/CLAUDE.md
+.claude/
