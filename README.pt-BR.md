@@ -140,6 +140,33 @@ dizer que a interface está livre.
 E o CUPS continua funcionando depois, desde que a interface seja liberada — o que
 o transporte faz por você com `await using`.
 
+## Imagem
+
+```ts
+nota.align('center').image(logo, { dither: 'atkinson' });
+```
+
+Recebe pixels RGBA crus — o mesmo formato do `ImageData` do navegador, então um
+canvas entra direto. Decodificar PNG ou JPEG não é trabalho do núcleo: custaria
+uma dependência nativa e a promessa de rodar em qualquer lugar.
+
+| Dither | Use para |
+|---|---|
+| `atkinson` (padrão) | Logo e arte de linha — mais contraste |
+| `floyd-steinberg` | Foto e gradiente suave |
+| `bayer` | Rápido, textura xadrez regular |
+| `none` | Entrada que já é preto e branco |
+
+**O Atkinson propaga só 6/8 do erro e descarta o resto.** É isso que segura o
+contraste, e é também por isso que ele perde detalhe nos extremos: impresso
+contra um gradiente inteiro, o Atkinson para de marcar pontos perto da ponta
+clara enquanto o Floyd-Steinberg vai até o fim. Para logo, contraste é a troca
+certa; para foto, detalhe é.
+
+Imagem mais larga que o papel lança erro em vez de imprimir — a impressora
+cortaria calada, e um logo sem a borda direita passa despercebido numa
+conferência rápida.
+
 ## Código de barras e QR (inclusive PIX)
 
 ```ts
