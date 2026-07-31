@@ -8,15 +8,30 @@ describe('command shape', () => {
   it('uses form B, which carries an explicit length', () => {
     // GS k 73 <len> <data> — form A would terminate on NUL and truncate.
     expect(bytes('AB', { symbology: 'code128', hri: 'none' })).toEqual([
-      0x1d, 0x48, 0, // HRI off
-      0x1d, 0x6b, 73, 4, 0x7b, 0x42, 0x41, 0x42, // {BAB
+      0x1d,
+      0x48,
+      0, // HRI off
+      0x1d,
+      0x6b,
+      73,
+      4,
+      0x7b,
+      0x42,
+      0x41,
+      0x42, // {BAB
     ]);
   });
 
   it('emits height, width and HRI font only when asked', () => {
     expect(bytes('123456789012', { symbology: 'ean13' })).toEqual([
-      0x1d, 0x48, 0,
-      0x1d, 0x6b, 67, 12, ...[...'123456789012'].map((c) => c.charCodeAt(0)),
+      0x1d,
+      0x48,
+      0,
+      0x1d,
+      0x6b,
+      67,
+      12,
+      ...[...'123456789012'].map((c) => c.charCodeAt(0)),
     ]);
 
     const full = bytes('123456789012', {
@@ -27,10 +42,18 @@ describe('command shape', () => {
       hriFont: 'b',
     });
     expect(full.slice(0, 12)).toEqual([
-      0x1d, 0x68, 80, // GS h
-      0x1d, 0x77, 3, // GS w
-      0x1d, 0x48, 2, // GS H below
-      0x1d, 0x66, 1, // GS f font B
+      0x1d,
+      0x68,
+      80, // GS h
+      0x1d,
+      0x77,
+      3, // GS w
+      0x1d,
+      0x48,
+      2, // GS H below
+      0x1d,
+      0x66,
+      1, // GS f font B
     ]);
   });
 

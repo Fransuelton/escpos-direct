@@ -1,7 +1,9 @@
 /** Terminal output helpers. No dependencies, and colour only when it is wanted. */
 
 const enabled =
-  process.env.NO_COLOR === undefined && process.env.TERM !== 'dumb' && process.stdout.isTTY === true;
+  process.env.NO_COLOR === undefined &&
+  process.env.TERM !== 'dumb' &&
+  process.stdout.isTTY === true;
 
 const wrap = (code: string) => (s: string) => (enabled ? `\x1b[${code}m${s}\x1b[0m` : s);
 

@@ -22,7 +22,9 @@ export function testPage(profile: Profile): Uint8Array {
   // wrong for this paper.
   r.line('Column ruler');
   r.line(
-    Array.from({ length: cols }, (_, i) => ((i + 1) % 10 === 0 ? '0' : String((i + 1) % 10))).join(''),
+    Array.from({ length: cols }, (_, i) => ((i + 1) % 10 === 0 ? '0' : String((i + 1) % 10))).join(
+      '',
+    ),
   );
   r.rule();
 

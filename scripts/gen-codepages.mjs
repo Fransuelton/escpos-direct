@@ -13,7 +13,13 @@ import { execFileSync } from 'node:child_process';
 // impressoras baratas só têm ela. CP437 é o default de fábrica da maioria.
 // CP1252 aparece em impressora chinesa que ignora `ESC t`.
 const PAGES = {
-  cp437: 0, cp850: 2, cp860: 3, cp863: 4, cp865: 5, cp858: 19, cp1252: 16,
+  cp437: 0,
+  cp850: 2,
+  cp860: 3,
+  cp863: 4,
+  cp865: 5,
+  cp858: 19,
+  cp1252: 16,
 };
 
 /** Byte alto -> caractere Unicode, segundo o iconv. */
@@ -37,8 +43,10 @@ let ts = `// GERADO POR scripts/gen-codepages.mjs — NÃO EDITE À MÃO.
 // Fonte: iconv do sistema. Regenere com \`npm run gen:codepages\`.
 
 /** Valor de \`n\` em \`ESC t n\` para cada página. */
-export const ESC_T: Record<string, number> = ${JSON.stringify(PAGES, null, 2)
-  .replace(/"([a-z0-9]+)":/g, '$1:')};
+export const ESC_T: Record<string, number> = ${JSON.stringify(PAGES, null, 2).replace(
+  /"([a-z0-9]+)":/g,
+  '$1:',
+)};
 
 /** Unicode -> byte, por página. Só a faixa alta; 0x00–0x7F é ASCII puro. */
 export const TABLES: Record<string, Record<string, number>> = {

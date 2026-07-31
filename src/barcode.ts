@@ -1,15 +1,7 @@
 import { GS } from './commands.js';
 
 export type Symbology =
-  | 'upc-a'
-  | 'upc-e'
-  | 'ean13'
-  | 'ean8'
-  | 'code39'
-  | 'itf'
-  | 'codabar'
-  | 'code93'
-  | 'code128';
+  'upc-a' | 'upc-e' | 'ean13' | 'ean8' | 'code39' | 'itf' | 'codabar' | 'code93' | 'code128';
 
 /** Where the human-readable digits print, if at all. */
 export type HriPosition = 'none' | 'above' | 'below' | 'both';
@@ -46,8 +38,15 @@ const RULES: Record<Symbology, { test: RegExp; expected: string }> = {
   ean8: { test: /^\d{7,8}$/, expected: '7 or 8 digits' },
   code39: { test: /^[0-9A-Z \-.$/+%*]+$/, expected: 'digits, capitals and - . $ / + % *' },
   itf: { test: /^(\d\d)+$/, expected: 'an even number of digits' },
-  codabar: { test: /^[A-Da-d][0-9$+\-./:]*[A-Da-d]$/, expected: 'digits wrapped in A–D start/stop characters' },
+  codabar: {
+    test: /^[A-Da-d][0-9$+\-./:]*[A-Da-d]$/,
+    expected: 'digits wrapped in A–D start/stop characters',
+  },
+  // ASCII includes the control range by definition, so the linter's objection
+  // to control characters in a regex does not apply here.
+  // oxlint-disable-next-line no-control-regex
   code93: { test: /^[\x00-\x7f]+$/, expected: 'ASCII only' },
+  // oxlint-disable-next-line no-control-regex
   code128: { test: /^[\x00-\x7f]+$/, expected: 'ASCII only' },
 };
 

@@ -79,14 +79,13 @@ export function toMonochrome(bitmap: Bitmap, options: ImageOptions = {}): boolea
 
   const dither = options.dither ?? 'atkinson';
   const threshold = options.threshold ?? 128;
-  const out: boolean[] = new Array(width * height);
+  const out: boolean[] = Array.from({ length: width * height });
 
   if (dither === 'none' || dither === 'bayer') {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const value = luminance(bitmap.data, (y * width + x) * 4);
-        const cut =
-          dither === 'bayer' ? ((BAYER_4X4[y & 3]![x & 3]! + 0.5) / 16) * 255 : threshold;
+        const cut = dither === 'bayer' ? ((BAYER_4X4[y & 3]![x & 3]! + 0.5) / 16) * 255 : threshold;
         out[y * width + x] = value < cut;
       }
     }
