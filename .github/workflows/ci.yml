@@ -13,13 +13,15 @@ permissions:
 
 jobs:
   test:
-    name: ${{ matrix.os }} · node ${{ matrix.node }}
+    name: test · ${{ matrix.os }} · node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
     strategy:
       # One platform failing should not hide the state of the other eight.
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        # 20 is the floor `engines` promises, so it gets tested like the rest.
+        # It is deliberately absent from the build job below — see there.
         node: [20, 22, 24]
 
     steps:
@@ -35,6 +37,28 @@ jobs:
       - run: npm run typecheck
 
       - run: npm test
+
+  # Bundling runs in one place, the way publishing does — there is no such thing
+  # as a per-platform dist/. It is also the only way it can run: tsdown declares
+  # `engines: ^22.18.0 || >=24.11.0` because it loads tsdown.config.ts through
+  # Node's native type stripping, falling back to `unrun` where that is missing.
+  # Node 20 has neither, so the build cannot run there.
+  #
+  # The library itself is fine on Node 20 — the matrix above proves it every
+  # run. Only the toolchain has the higher floor.
+  build:
+    name: build · node 24
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
 
       - run: npm run build
 
