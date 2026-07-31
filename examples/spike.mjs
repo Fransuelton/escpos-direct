@@ -98,9 +98,18 @@ ok(`endpoint OUT ${out.endpointNumber}`);
 // A hand-rolled CP850 table, enough for this one test. The library ships real
 // generated tables — this is here so the spike depends on nothing.
 const CP850 = {
-  á: 0xa0, é: 0x82, í: 0xa1, ó: 0xa2, ú: 0xa3,
-  â: 0x83, ê: 0x88, ô: 0x93, ã: 0xc6, õ: 0xe4,
-  ç: 0x87, Ç: 0x80,
+  á: 0xa0,
+  é: 0x82,
+  í: 0xa1,
+  ó: 0xa2,
+  ú: 0xa3,
+  â: 0x83,
+  ê: 0x88,
+  ô: 0x93,
+  ã: 0xc6,
+  õ: 0xe4,
+  ç: 0x87,
+  Ç: 0x80,
 };
 const cp850 = (s) => Buffer.from([...s].map((c) => CP850[c] ?? c.charCodeAt(0)));
 

@@ -12,16 +12,20 @@ testados; imagem, código de barras e CLI vêm a seguir.
 import { Receipt, mm58 } from 'escpos-direct';
 
 const nota = new Receipt(mm58)
-  .reset()                                   // ESC @, e só depois ESC t
-  .align('center').bold(true).line('MINHA LOJA').bold(false)
-  .align('left').rule()
-  .item('2x Coxinha', 'R$ 7,00')             // quebra por palavra, valor à direita
+  .reset() // ESC @, e só depois ESC t
+  .align('center')
+  .bold(true)
+  .line('MINHA LOJA')
+  .bold(false)
+  .align('left')
+  .rule()
+  .item('2x Coxinha', 'R$ 7,00') // quebra por palavra, valor à direita
   .item('1x Bolo de Pote - Ninho', 'R$ 18,00')
   .rule()
-  .total('TOTAL', 'R$ 25,00')                // altura dupla, colunas divididas por você
-  .feed();                                   // passa da serrilha
+  .total('TOTAL', 'R$ 25,00') // altura dupla, colunas divididas por você
+  .feed(); // passa da serrilha
 
-const bytes = nota.encode();                 // Uint8Array — sem hardware nenhum
+const bytes = nota.encode(); // Uint8Array — sem hardware nenhum
 ```
 
 E aí manda para a impressora:
@@ -66,7 +70,7 @@ saida.bin` grava bytes em vez de papel, e `--cups <fila>` manda pelo CUPS.
 Essa é a pergunta que originou o projeto, e ela quase nunca tem resposta em
 português. São cinco armadilhas, todas silenciosas:
 
-**1. O `ESC t` tem que vir *depois* do `ESC @`.**
+**1. O `ESC t` tem que vir _depois_ do `ESC @`.**
 O reset zera a code page selecionada. Mandar na ordem contrária não faz nada, e
 a impressora fica na página de fábrica dela. É a causa nº 1 de acento quebrado.
 
@@ -97,8 +101,8 @@ npm install escpos-direct            # só o encoder — não vem mais nada junt
 npm install escpos-direct usb        # ...com o transporte USB
 ```
 
-O núcleo tem **zero dependências** e não compila nada. O `usb` é *peer
-opcional*: você instala por conta, e só se for imprimir por USB. Quem só gera
+O núcleo tem **zero dependências** e não compila nada. O `usb` é _peer
+opcional_: você instala por conta, e só se for imprimir por USB. Quem só gera
 bytes no navegador não baixa um módulo nativo que nunca vai carregar.
 
 Ele vem com binário pronto, então acrescentá-lo continua não sendo etapa de
@@ -109,11 +113,11 @@ compilação.
 O encoder é puro e a entrega é trocável: escolher transporte não muda uma linha
 de como a nota é montada.
 
-| Import | Como imprime | Quando usar |
-|---|---|---|
-| `escpos-direct/usb` | Endpoint bulk, via WebUSB | O padrão. O mesmo arquivo roda no Chrome — passe `{ usb: navigator.usb }` |
-| `escpos-direct/cups` | `lp -o raw` | Onde o claim da interface falha: Windows, Linux sem regra udev, fila compartilhada |
-| `escpos-direct/file` | Escreve num caminho | `/dev/usb/lp0` no Linux, ou capturar o payload para comparar |
+| Import               | Como imprime              | Quando usar                                                                        |
+| -------------------- | ------------------------- | ---------------------------------------------------------------------------------- |
+| `escpos-direct/usb`  | Endpoint bulk, via WebUSB | O padrão. O mesmo arquivo roda no Chrome — passe `{ usb: navigator.usb }`          |
+| `escpos-direct/cups` | `lp -o raw`               | Onde o claim da interface falha: Windows, Linux sem regra udev, fila compartilhada |
+| `escpos-direct/file` | Escreve num caminho       | `/dev/usb/lp0` no Linux, ou capturar o payload para comparar                       |
 
 O `await using` não é enfeite. Ele libera a interface quando o bloco termina, e
 **liberar é a condição para o CUPS continuar funcionando depois**. Sem ele, uma
@@ -138,9 +142,9 @@ try {
   await impressora.write(bytes);
 } catch (e) {
   if (!isEscposError(e)) throw e;
-  console.error(e.code);     // 'CLAIM_FAILED'
+  console.error(e.code); // 'CLAIM_FAILED'
   console.error(e.format()); // e, no Linux: "O driver usblp do kernel costuma
-                             //    segurar a interface: sudo modprobe -r usblp"
+  //    segurar a interface: sudo modprobe -r usblp"
 }
 ```
 
@@ -178,12 +182,12 @@ Recebe pixels RGBA crus — o mesmo formato do `ImageData` do navegador, então 
 canvas entra direto. Decodificar PNG ou JPEG não é trabalho do núcleo: custaria
 uma dependência nativa e a promessa de rodar em qualquer lugar.
 
-| Dither | Use para |
-|---|---|
+| Dither              | Use para                              |
+| ------------------- | ------------------------------------- |
 | `atkinson` (padrão) | Logo e arte de linha — mais contraste |
-| `floyd-steinberg` | Foto e gradiente suave |
-| `bayer` | Rápido, textura xadrez regular |
-| `none` | Entrada que já é preto e branco |
+| `floyd-steinberg`   | Foto e gradiente suave                |
+| `bayer`             | Rápido, textura xadrez regular        |
+| `none`              | Entrada que já é preto e branco       |
 
 **O Atkinson propaga só 6/8 do erro e descarta o resto.** É isso que segura o
 contraste, e é também por isso que ele perde detalhe nos extremos: impresso
@@ -240,12 +244,12 @@ uma frase e os quatro bytes `raw` para o seu log.
 E isto não é a especificação repetida: são três estados medidos numa YiDa
 YD583, abrindo a tampa e tirando o rolo na mão:
 
-| Consulta | Fechada, com papel | Tampa aberta | Sem papel, fechada |
-|---|---|---|---|
-| `n=1` status | `0x12` | `0x1a` offline | `0x1a` |
-| `n=2` offline | `0x12` | `0x32` fim de papel | `0x32` |
-| `n=3` erro | `0x12` | `0x12` | `0x12` |
-| `n=4` sensor | `0x12` | `0x72` fim de papel | `0x72` |
+| Consulta      | Fechada, com papel | Tampa aberta        | Sem papel, fechada |
+| ------------- | ------------------ | ------------------- | ------------------ |
+| `n=1` status  | `0x12`             | `0x1a` offline      | `0x1a`             |
+| `n=2` offline | `0x12`             | `0x32` fim de papel | `0x32`             |
+| `n=3` erro    | `0x12`             | `0x12`              | `0x12`             |
+| `n=4` sensor  | `0x12`             | `0x72` fim de papel | `0x72`             |
 
 Os bits 1 e 4 são fixos em 1 — por isso `0x12` é a base de "está tudo bem".
 

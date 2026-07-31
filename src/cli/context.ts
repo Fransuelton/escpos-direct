@@ -10,7 +10,9 @@ export function resolveProfile(values: CliOptions): Profile {
   const name = (values.profile as string) ?? 'mm58';
   const base = PROFILES[name as keyof typeof PROFILES];
   if (!base) {
-    throw new RangeError(`unknown profile "${name}"; expected ${Object.keys(PROFILES).join(' or ')}`);
+    throw new RangeError(
+      `unknown profile "${name}"; expected ${Object.keys(PROFILES).join(' or ')}`,
+    );
   }
 
   const codepage = values.codepage as string | undefined;

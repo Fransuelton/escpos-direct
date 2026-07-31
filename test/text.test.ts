@@ -45,10 +45,7 @@ describe('truncate', () => {
 
 describe('wrap', () => {
   it('breaks on word boundaries', () => {
-    expect(wrap('Bolo de Pote - Doce de Leite', 16)).toEqual([
-      'Bolo de Pote -',
-      'Doce de Leite',
-    ]);
+    expect(wrap('Bolo de Pote - Doce de Leite', 16)).toEqual(['Bolo de Pote -', 'Doce de Leite']);
   });
 
   it('force-breaks a word longer than the line', () => {
@@ -79,9 +76,7 @@ describe('pad', () => {
 
 describe('itemLines', () => {
   it('right-aligns the value on the last line when it fits', () => {
-    expect(itemLines('2x Coxinha', 'R$ 7,00', 32)).toEqual([
-      '2x Coxinha               R$ 7,00',
-    ]);
+    expect(itemLines('2x Coxinha', 'R$ 7,00', 32)).toEqual(['2x Coxinha               R$ 7,00']);
   });
 
   it('wraps a long description and keeps the value aligned', () => {

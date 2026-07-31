@@ -38,6 +38,25 @@ jobs:
 
       - run: npm test
 
+  # Style is not portable-sensitive, so once is enough.
+  lint:
+    name: lint · node 24
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run format:check
+
   # Bundling runs in one place, the way publishing does — there is no such thing
   # as a per-platform dist/. It is also the only way it can run: tsdown declares
   # `engines: ^22.18.0 || >=24.11.0` because it loads tsdown.config.ts through

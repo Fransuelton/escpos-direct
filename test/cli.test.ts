@@ -51,6 +51,7 @@ describe('preview frame', () => {
     const [top] = frame([], mm58);
     expect(top).toContain('-'.repeat(4) + '+');
     // Border, padding, the paper itself, padding, border.
+    // oxlint-disable-next-line no-control-regex -- ESC is what colour codes are
     expect(top!.replace(/\x1b\[\d+m/g, '')).toHaveLength(mm58.columns + 4);
   });
 

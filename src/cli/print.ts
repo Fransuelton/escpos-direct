@@ -10,9 +10,7 @@ export async function print(path: string | undefined, values: CliOptions): Promi
   await using transport = await openTransport(values);
 
   if (values.status !== false && 'status' in transport) {
-    const status = await (
-      transport as { status(): Promise<{ ready: boolean; reason?: string }> }
-    )
+    const status = await (transport as { status(): Promise<{ ready: boolean; reason?: string }> })
       .status()
       .catch(() => undefined);
     if (status && !status.ready) {

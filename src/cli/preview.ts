@@ -20,7 +20,9 @@ export function frame(lines: string[], profile: Profile): string[] {
   for (const line of lines) {
     const over = line.length > width;
     const body = over ? line.slice(0, width) : line.padEnd(width);
-    out.push(`${dim('│')} ${over ? red(body) : body} ${dim('│')}${over ? red(` ← ${line.length}`) : ''}`);
+    out.push(
+      `${dim('│')} ${over ? red(body) : body} ${dim('│')}${over ? red(` ← ${line.length}`) : ''}`,
+    );
   }
   out.push(dim(`└─${ruler}─┘`));
   return out;

@@ -1,0 +1,7 @@
+dist
+node_modules
+package-lock.json
+
+# Generated from the system iconv — regenerate with `npm run gen:codepages`
+# rather than reformatting.
+src/codepage/tables.ts

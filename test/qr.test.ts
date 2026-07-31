@@ -6,11 +6,49 @@ describe('command sequence', () => {
   it('emits model, size, correction, store and print, in that order', () => {
     const out = [...qr('HI', { size: 6, correction: 'M' })];
     expect(out).toEqual([
-      0x1d, 0x28, 0x6b, 4, 0, 0x31, 0x41, 50, 0, // model 2
-      0x1d, 0x28, 0x6b, 3, 0, 0x31, 0x43, 6, // module size
-      0x1d, 0x28, 0x6b, 3, 0, 0x31, 0x45, 49, // correction M
-      0x1d, 0x28, 0x6b, 5, 0, 0x31, 0x50, 0x30, 0x48, 0x49, // store "HI"
-      0x1d, 0x28, 0x6b, 3, 0, 0x31, 0x51, 0x30, // print
+      0x1d,
+      0x28,
+      0x6b,
+      4,
+      0,
+      0x31,
+      0x41,
+      50,
+      0, // model 2
+      0x1d,
+      0x28,
+      0x6b,
+      3,
+      0,
+      0x31,
+      0x43,
+      6, // module size
+      0x1d,
+      0x28,
+      0x6b,
+      3,
+      0,
+      0x31,
+      0x45,
+      49, // correction M
+      0x1d,
+      0x28,
+      0x6b,
+      5,
+      0,
+      0x31,
+      0x50,
+      0x30,
+      0x48,
+      0x49, // store "HI"
+      0x1d,
+      0x28,
+      0x6b,
+      3,
+      0,
+      0x31,
+      0x51,
+      0x30, // print
     ]);
   });
 
@@ -22,7 +60,12 @@ describe('command sequence', () => {
   });
 
   it('maps the correction levels', () => {
-    for (const [level, byte] of [['L', 48], ['M', 49], ['Q', 50], ['H', 51]] as const) {
+    for (const [level, byte] of [
+      ['L', 48],
+      ['M', 49],
+      ['Q', 50],
+      ['H', 51],
+    ] as const) {
       expect([...qr('x', { correction: level })]).toContain(byte);
     }
   });

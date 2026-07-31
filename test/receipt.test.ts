@@ -41,7 +41,7 @@ describe('reset and code page ordering', () => {
 
   it('keeps a switched page across a later reset', () => {
     const bytes = new Receipt(mm58).codepage('cp860').reset().encode();
-    expect([...bytes.slice(-3)]).toEqual([0x1b, 0x74, 3]);
+    expect([...bytes].slice(-3)).toEqual([0x1b, 0x74, 3]);
   });
 });
 
@@ -108,8 +108,12 @@ describe('encode()', () => {
   it('produces a stable payload for a full receipt', () => {
     const r = new Receipt(mm58)
       .reset()
-      .align('center').bold(true).line('DOCES & SALGADOS').bold(false)
-      .align('left').rule()
+      .align('center')
+      .bold(true)
+      .line('DOCES & SALGADOS')
+      .bold(false)
+      .align('left')
+      .rule()
       .item('2x Coxinha', 'R$ 7,00')
       .item('1x Cento de Salgados', 'R$ 90,00')
       .sub('30x Coxinha')

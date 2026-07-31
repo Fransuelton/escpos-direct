@@ -41,7 +41,9 @@ for (const [kind, name, target] of declared) {
 
 for (const [kind, name, target] of declared) {
   const problem = problems.find((p) => p[2] === target && p[1] === name);
-  console.log(`${problem ? '✗' : '✓'} ${kind} ${name} → ${target}${problem ? ` (${problem[3]})` : ''}`);
+  console.log(
+    `${problem ? '✗' : '✓'} ${kind} ${name} → ${target}${problem ? ` (${problem[3]})` : ''}`,
+  );
 }
 
 if (problems.length > 0) {

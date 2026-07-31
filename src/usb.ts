@@ -403,7 +403,9 @@ export class UsbTransport implements Transport {
       throw new EscposError(
         'WRITE_FAILED',
         `short write: ${result.bytesWritten} of ${chunk.length} bytes`,
-        { hint: 'Set { chunkSize: 4096 } when opening — some printers drop the tail of a large transfer.' },
+        {
+          hint: 'Set { chunkSize: 4096 } when opening — some printers drop the tail of a large transfer.',
+        },
       );
     }
   }
