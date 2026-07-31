@@ -18,10 +18,17 @@ export async function readSource(path: string | undefined): Promise<string> {
  *
  * Deliberately not a layout language: the library is the API for that, and a
  * half-invented markup would be a worse one.
+ *
+ * Lines that fit are sent as-is, so runs of spaces survive — someone who lined
+ * a receipt up by hand in a text editor expects to get that back. Only lines
+ * too long for the paper are word-wrapped, which collapses their spacing.
  */
 export function fromText(text: string, profile: Profile): Receipt {
   const receipt = new Receipt(profile).reset();
-  for (const line of text.replace(/\n$/, '').split('\n')) receipt.paragraph(line);
+  for (const line of text.replace(/\n$/, '').split('\n')) {
+    if (line.length <= profile.columns) receipt.line(line);
+    else receipt.paragraph(line);
+  }
   return receipt.feed();
 }
 

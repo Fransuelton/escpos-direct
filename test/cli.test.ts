@@ -33,6 +33,12 @@ describe('text to receipt', () => {
     expect(render(fromText('a\n\nb', mm58).encode(), mm58).slice(0, 3)).toEqual(['a', '', 'b']);
   });
 
+  it('preserves runs of spaces on lines that fit', () => {
+    // Someone who aligned a receipt by hand in a text editor expects it back.
+    const aligned = '2x Coxinha          R$ 7,00';
+    expect(render(fromText(aligned, mm58).encode(), mm58)[0]).toBe(aligned);
+  });
+
   it('renders through the code page, not latin1', () => {
     // Read as latin1 this ê (0x88) would be a control character — the exact bug
     // the library exists to prevent, so the preview must not commit it either.
