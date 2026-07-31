@@ -140,6 +140,33 @@ dizer que a interface está livre.
 E o CUPS continua funcionando depois, desde que a interface seja liberada — o que
 o transporte faz por você com `await using`.
 
+## Código de barras e QR (inclusive PIX)
+
+```ts
+nota
+  .barcode('789123456789', { symbology: 'ean13', hri: 'below', height: 60 })
+  .qr(payloadPix, { size: 6, correction: 'M' });
+```
+
+Nove simbologias (`code128` por padrão, mais EAN-13/8, UPC-A/E, CODE39, CODE93,
+ITF e Codabar), com controle de altura, largura do módulo e onde saem os
+dígitos legíveis.
+
+**Dado inválido lança erro em vez de imprimir.** Impressora que recebe um código
+de barras que não sabe codificar não imprime nada e não reclama — a nota sai com
+um buraco no lugar. Então o `ean13` exige seus 12 ou 13 dígitos, o `itf` exige
+quantidade par, e o CODE128 ganha o prefixo de code set `{B` quando você não
+passa nenhum — sem ele, muita impressora fica muda.
+
+No QR, o payload entra literal, então **o PIX não precisa de nada especial**:
+
+```ts
+nota.align('center').qr(brCode, { size: 6 });
+```
+
+Os bytes do QR são escritos crus, de propósito fora da code page: QR carrega
+bytes e quem decide como lê-los é o leitor.
+
 ## Status da impressora: medido, não prometido
 
 ```ts

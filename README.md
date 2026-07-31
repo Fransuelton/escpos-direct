@@ -141,6 +141,33 @@ interface is free to claim.
 CUPS keeps working afterwards, as long as the interface is released — which the
 transport does for you via `await using`.
 
+## Barcodes and QR codes
+
+```ts
+receipt
+  .barcode('789123456789', { symbology: 'ean13', hri: 'below', height: 60 })
+  .qr(pixPayload, { size: 6, correction: 'M' });
+```
+
+Nine symbologies (`code128` by default, plus EAN-13/8, UPC-A/E, CODE39, CODE93,
+ITF and Codabar), with control over height, module width and where the
+human-readable digits go.
+
+**Invalid data throws instead of printing.** A printer handed a barcode it
+cannot encode prints nothing at all and reports no error — the receipt just
+comes out with a gap. So `ean13` insists on its 12 or 13 digits, `itf` on an
+even count, and CODE128 gets a `{B` code set prefix when you do not supply one,
+without which many printers stay silent.
+
+For QR, the payload goes in verbatim — **a PIX BR Code needs nothing special**:
+
+```ts
+receipt.align('center').qr(brCode, { size: 6 });
+```
+
+QR data is written as raw bytes and deliberately bypasses the code page, since a
+QR carries bytes and the scanner decides how to read them.
+
 ## Printer status: measured first
 
 ```ts
@@ -192,7 +219,7 @@ This is the part nobody documents, which is exactly why it is written down here.
 
 - [x] **M1** — encoder core: columns, wrapping, code pages, profiles
 - [x] **M2** — transports: USB (WebUSB), CUPS fallback, file; typed errors with hints
-- [ ] **M3** — [x] `DLE EOT` status · [ ] images (raster + dithering) · [ ] QR codes (PIX) · [ ] barcodes
+- [ ] **M3** — [x] `DLE EOT` status · [x] QR codes (PIX) · [x] barcodes · [ ] images (raster + dithering)
 - [ ] **M4** — CLI: `devices`, `doctor`, `test`, `print`, `preview`
 - [ ] **M5** — v1.0
 
