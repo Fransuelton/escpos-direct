@@ -288,7 +288,13 @@ npm test              # 63 tests, no printer required
 npm run typecheck
 npm run build
 npm run gen:codepages # regenerate code page tables from the system iconv
+npm run changeset     # describe a change for the next release
 ```
+
+Releases go through [changesets](https://github.com/changesets/changesets): add
+one describing your change and the version bump and changelog follow from it.
+Publishing itself stays manual, because the npm account requires a one-time
+password for every publish.
 
 Layout logic is a pure function of its input, so almost everything is testable
 without hardware. That is deliberate.
