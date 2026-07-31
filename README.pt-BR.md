@@ -65,12 +65,16 @@ ela preserva: é justamente para isso que a code page existe.
 ## Instalação
 
 ```bash
-npm install escpos-direct
+npm install escpos-direct            # só o encoder — não vem mais nada junto
+npm install escpos-direct usb        # ...com o transporte USB
 ```
 
-O núcleo tem **zero dependências** e não compila nada. O `usb` é dependência
-opcional, só entra se você usar o transporte USB — e vem com binário pronto, sem
-etapa de compilação.
+O núcleo tem **zero dependências** e não compila nada. O `usb` é *peer
+opcional*: você instala por conta, e só se for imprimir por USB. Quem só gera
+bytes no navegador não baixa um módulo nativo que nunca vai carregar.
+
+Ele vem com binário pronto, então acrescentá-lo continua não sendo etapa de
+compilação.
 
 ## Transportes
 
