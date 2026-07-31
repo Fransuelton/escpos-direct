@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Known printer results
+    url: https://github.com/Fransuelton/escpos-direct/issues/14
+    about: The running table of printers people have tried, and what worked on each.
+  - name: It will not print on my machine
+    url: https://github.com/Fransuelton/escpos-direct#does-direct-usb-actually-work-on-macos
+    about: Run `npx escpos-direct doctor` first — it diagnoses claim, permissions, status and CUPS, with a hint for your platform.

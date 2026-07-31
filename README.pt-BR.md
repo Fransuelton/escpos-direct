@@ -1,5 +1,10 @@
 # escpos-direct
 
+[![npm](https://img.shields.io/npm/v/escpos-direct?color=cb3837&logo=npm)](https://www.npmjs.com/package/escpos-direct)
+[![CI](https://github.com/Fransuelton/escpos-direct/actions/workflows/ci.yml/badge.svg)](https://github.com/Fransuelton/escpos-direct/actions/workflows/ci.yml)
+[![dependências de runtime](https://img.shields.io/badge/deps%20de%20runtime-0-brightgreen)](https://www.npmjs.com/package/escpos-direct?activeTab=dependencies)
+[![licença](https://img.shields.io/npm/l/escpos-direct?color=blue)](LICENSE)
+
 Impressão térmica ESC/POS para Node e navegador, escrevendo **direto no endpoint
 USB** — sem CUPS, sem fila de impressão, sem spooler estragando os seus bytes.
 
