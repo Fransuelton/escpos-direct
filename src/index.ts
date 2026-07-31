@@ -30,3 +30,12 @@ export {
 // The transport contract is pure — the implementations behind it are not, and
 // stay in their own subpaths.
 export { ASYNC_DISPOSE, serialQueue, type Transport } from './transport.js';
+// Reading DLE EOT replies is byte maths, so it belongs here with the rest of it.
+export {
+  parseStatus,
+  isStatusByte,
+  type PrinterStatus,
+  type StatusBytes,
+  type PaperState,
+  type ErrorState,
+} from './status.js';

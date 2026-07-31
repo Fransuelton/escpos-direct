@@ -61,7 +61,7 @@ point-of-sale system every day:
 | Maintained | ✅ | ❌ alpha since 2022 | ✅ | ⚠️ 2024 |
 | Direct USB endpoint | ✅ | ✅ | ❌ goes through the OS queue | ❌ no transport |
 | Runs in the browser | ✅ WebUSB | ❌ | ❌ | ✅ encoder only |
-| Reads printer status | 🚧 M3 — [measured, not shipped](#printer-status-measured-first) | ❌ | ❌ | ❌ |
+| Reads printer status | ✅ [`DLE EOT`](#printer-status-measured-first) | ❌ | ❌ | ❌ |
 | Code page tables built in | ✅ 7 pages | ⚠️ | ⚠️ | ✅ |
 | TypeScript types | ✅ | ❌ | ⚠️ | ✅ |
 | Dependencies (core) | **0** | many | many | 0 |
@@ -143,9 +143,21 @@ transport does for you via `await using`.
 
 ## Printer status: measured first
 
-`DLE EOT` reports real physical state, and this is not a claim borrowed from the
-spec — it is three states measured on a YiDa YD583, cover opened and paper
-pulled by hand:
+```ts
+await using printer = await UsbTransport.open();
+
+const status = await printer.status();
+if (!status.ready) throw new Error(status.reason);
+await printer.write(bytes);
+```
+
+Real-time, straight from the firmware — it answers even while the printer is
+busy, and no queue is involved. You get `ready`, `paper`
+(`ok` / `near-end` / `out`), `coverOpen`, `drawerOpen`, `error`, a one-sentence
+`reason`, and the four `raw` bytes for your logs.
+
+This is not a claim borrowed from the spec — it is three states measured on a
+YiDa YD583, cover opened and paper pulled by hand:
 
 | Query | Closed, paper in | Cover open | No paper, closed |
 |---|---|---|---|
@@ -159,18 +171,28 @@ baseline.
 
 **Cover open and out of paper are the same byte.** This printer never raises the
 cover-open bit (`0x04` on query 2) that the spec defines — opening the cover
-lifts the paper sensor, and that sensor is the only one it has. So the API
-landing in M3 will report one state and say so, rather than pretend to tell two
-apart. If your printer does raise `0x04`, it will be reported.
+lifts the paper sensor, and that sensor is the only one it has.
 
-The reading API is M3. What is done today is the measurement, and the reason it
-is written down here is that this is the part nobody documents.
+So `status()` reports one state and explains it, rather than pretending to tell
+two apart:
+
+```
+ready: false | paper: out | coverOpen: false
+reason: out of paper, or the cover is open — many thermal printers report
+        both identically, because opening the cover lifts the paper sensor
+```
+
+If your printer does raise `0x04`, `coverOpen` comes back true and the reason
+says so plainly. On a write-only interface, `status()` throws `UNSUPPORTED`
+rather than hanging — check `canReadStatus` first if you want to branch.
+
+This is the part nobody documents, which is exactly why it is written down here.
 
 ## Roadmap
 
 - [x] **M1** — encoder core: columns, wrapping, code pages, profiles
 - [x] **M2** — transports: USB (WebUSB), CUPS fallback, file; typed errors with hints
-- [ ] **M3** — images (raster + dithering), QR codes (PIX), barcodes, `DLE EOT` status
+- [ ] **M3** — [x] `DLE EOT` status · [ ] images (raster + dithering) · [ ] QR codes (PIX) · [ ] barcodes
 - [ ] **M4** — CLI: `devices`, `doctor`, `test`, `print`, `preview`
 - [ ] **M5** — v1.0
 

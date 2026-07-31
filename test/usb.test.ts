@@ -61,6 +61,15 @@ function fakeDevice(overrides: Partial<FakeDevice> = {}): FakeDevice {
       this.written.push(bytes.slice());
       return { status: 'ok', bytesWritten: bytes.length };
     },
+    // Status replies are queued in order; an empty queue means the printer
+    // said nothing, which is a real failure mode worth testing.
+    replies: [],
+    async transferIn(endpoint: number) {
+      this.log.push(`in:${endpoint}`);
+      const byte = this.replies.shift();
+      if (byte === undefined) throw new Error('no reply');
+      return { status: 'ok', data: { buffer: Uint8Array.of(byte).buffer } };
+    },
     ...overrides,
   };
   return device;
@@ -69,13 +78,15 @@ function fakeDevice(overrides: Partial<FakeDevice> = {}): FakeDevice {
 interface FakeDevice extends UsbDeviceLike {
   log: string[];
   written: Uint8Array[];
+  replies: number[];
 }
 
 describe('open', () => {
   it('finds the printer-class interface and its bulk OUT endpoint', async () => {
     const device = fakeDevice();
     const t = await UsbTransport.open({ device });
-    expect(t.target).toEqual({ interfaceNumber: 0, endpointNumber: 1 });
+    expect(t.target).toEqual({ interfaceNumber: 0, endpointNumber: 1, inEndpointNumber: 2 });
+    expect(t.canReadStatus).toBe(true);
     await t.close();
   });
 
@@ -205,6 +216,100 @@ describe('write', () => {
     await t.close();
     const error = await t.write(Uint8Array.of(1)).catch((e) => e);
     expect(isEscposError(error) && error.code).toBe('WRITE_FAILED');
+  });
+});
+
+describe('status', () => {
+  it('sends DLE EOT 1..4 and reads one reply each', async () => {
+    const device = fakeDevice({ replies: [0x12, 0x12, 0x12, 0x12] });
+    const t = await UsbTransport.open({ device });
+    const s = await t.status();
+
+    expect(s.ready).toBe(true);
+    expect(device.written.map((w) => [...w])).toEqual([
+      [0x10, 0x04, 1],
+      [0x10, 0x04, 2],
+      [0x10, 0x04, 3],
+      [0x10, 0x04, 4],
+    ]);
+    await t.close();
+  });
+
+  it('reports the measured cover-open state', async () => {
+    const device = fakeDevice({ replies: [0x1a, 0x32, 0x12, 0x72] });
+    const t = await UsbTransport.open({ device });
+    const s = await t.status();
+
+    expect(s.ready).toBe(false);
+    expect(s.paper).toBe('out');
+    expect(s.reason).toMatch(/cover is open/);
+    await t.close();
+  });
+
+  it('retries a query that comes back empty, which happened for real once', async () => {
+    // First read throws, second answers. Without the retry this reports a
+    // healthy printer as offline.
+    const device = fakeDevice({ replies: [] });
+    let call = 0;
+    device.transferIn = async () => {
+      call++;
+      if (call === 1) throw new Error('Cancelled');
+      return { status: 'ok', data: { buffer: Uint8Array.of(0x12).buffer } };
+    };
+    const t = await UsbTransport.open({ device });
+    expect((await t.status()).ready).toBe(true);
+    await t.close();
+  });
+
+  it('discards a reply that is not a status byte instead of trusting it', async () => {
+    // 0x41 is 'A' — leftover text in the buffer. Parsed naively it would look
+    // like an offline printer with a cutter error.
+    const device = fakeDevice({ replies: [0x41, 0x12, 0x12, 0x12, 0x12] });
+    const t = await UsbTransport.open({ device });
+    expect((await t.status()).ready).toBe(true);
+    await t.close();
+  });
+
+  it('gives up as OFFLINE when the printer never answers', async () => {
+    const device = fakeDevice({ replies: [] });
+    const t = await UsbTransport.open({ device });
+    const error = await t.status().catch((e) => e);
+    expect(isEscposError(error) && error.code).toBe('OFFLINE');
+    expect(error.hint).toMatch(/bidirectional/i);
+    await t.close();
+  });
+
+  it('is UNSUPPORTED on a write-only interface, not a hang', async () => {
+    const configuration = {
+      configurationValue: 1,
+      interfaces: [
+        {
+          interfaceNumber: 0,
+          alternate: {
+            interfaceClass: 7,
+            endpoints: [{ endpointNumber: 1, direction: 'out', type: 'bulk', packetSize: 64 }],
+          },
+        } satisfies UsbInterfaceLike,
+      ],
+    };
+    const t = await UsbTransport.open({
+      device: fakeDevice({ configuration, configurations: [configuration] }),
+    });
+    expect(t.canReadStatus).toBe(false);
+    const error = await t.status().catch((e) => e);
+    expect(isEscposError(error) && error.code).toBe('UNSUPPORTED');
+    await t.close();
+  });
+
+  it('does not interleave with a receipt being written', async () => {
+    const device = fakeDevice({ replies: [0x12, 0x12, 0x12, 0x12] });
+    const t = await UsbTransport.open({ device });
+    await Promise.all([t.write(Uint8Array.of(0xaa)), t.status()]);
+
+    // The receipt byte must come out whole, before the first query.
+    expect([...device.written[0]!]).toEqual([0xaa]);
+    expect([...device.written[1]!]).toEqual([0x10, 0x04, 1]);
+    await t.close();
   });
 });
 

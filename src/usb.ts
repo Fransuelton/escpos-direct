@@ -18,7 +18,9 @@
  * released** — which is why `close()` is not optional here, and why this class
  * implements async dispose so `await using` can guarantee it.
  */
+import * as cmd from './commands.js';
 import { EscposError } from './errors.js';
+import { isStatusByte, parseStatus, type PrinterStatus } from './status.js';
 import { ASYNC_DISPOSE, assertOpen, serialQueue, type Transport } from './transport.js';
 
 /** USB class code for printers, from the USB device class spec. */
@@ -71,6 +73,10 @@ export interface UsbDeviceLike {
     endpointNumber: number,
     data: Uint8Array,
   ): Promise<{ readonly status?: string; readonly bytesWritten?: number }>;
+  transferIn(
+    endpointNumber: number,
+    length: number,
+  ): Promise<{ readonly status?: string; readonly data?: { buffer: ArrayBufferLike } | undefined }>;
 }
 
 export interface UsbLike {
@@ -88,6 +94,10 @@ export interface UsbOpenOptions {
   /** Override interface/endpoint discovery for a printer that reports oddly. */
   interfaceNumber?: number;
   endpointNumber?: number;
+  /** Bulk IN endpoint, used only by `status()`. Discovered automatically. */
+  inEndpointNumber?: number;
+  /** How long to wait for a `DLE EOT` reply, per attempt. */
+  statusTimeout?: number;
   /**
    * Split writes into chunks of this many bytes.
    *
@@ -137,7 +147,9 @@ export class UsbTransport implements Transport {
   readonly device: UsbDeviceLike;
   readonly #interfaceNumber: number;
   readonly #endpointNumber: number;
+  readonly #inEndpointNumber: number | undefined;
   readonly #chunkSize: number | undefined;
+  readonly #statusTimeout: number;
   readonly #enqueue = serialQueue();
   #closed = false;
 
@@ -145,21 +157,37 @@ export class UsbTransport implements Transport {
     device: UsbDeviceLike,
     interfaceNumber: number,
     endpointNumber: number,
-    chunkSize: number | undefined,
+    inEndpointNumber: number | undefined,
+    options: UsbOpenOptions,
   ) {
     this.device = device;
     this.#interfaceNumber = interfaceNumber;
     this.#endpointNumber = endpointNumber;
-    this.#chunkSize = chunkSize;
+    this.#inEndpointNumber = inEndpointNumber;
+    this.#chunkSize = options.chunkSize;
+    this.#statusTimeout = options.statusTimeout ?? 1500;
   }
 
   get closed(): boolean {
     return this.#closed;
   }
 
-  /** The claimed interface and endpoint, for a `doctor` command to report. */
-  get target(): { interfaceNumber: number; endpointNumber: number } {
-    return { interfaceNumber: this.#interfaceNumber, endpointNumber: this.#endpointNumber };
+  /** The claimed interface and endpoints, for a `doctor` command to report. */
+  get target(): {
+    interfaceNumber: number;
+    endpointNumber: number;
+    inEndpointNumber: number | undefined;
+  } {
+    return {
+      interfaceNumber: this.#interfaceNumber,
+      endpointNumber: this.#endpointNumber,
+      inEndpointNumber: this.#inEndpointNumber,
+    };
+  }
+
+  /** Whether this interface can answer `DLE EOT` at all. */
+  get canReadStatus(): boolean {
+    return this.#inEndpointNumber !== undefined;
   }
 
   /**
@@ -230,7 +258,20 @@ export class UsbTransport implements Transport {
         );
       }
 
-      return new UsbTransport(device, iface.interfaceNumber, endpointNumber, options.chunkSize);
+      // Optional: plenty of printers are write-only, and that is not an error
+      // until someone actually asks for status.
+      const inEndpointNumber =
+        options.inEndpointNumber ??
+        iface.alternate.endpoints.find((e) => e.direction === 'in' && e.type === 'bulk')
+          ?.endpointNumber;
+
+      return new UsbTransport(
+        device,
+        iface.interfaceNumber,
+        endpointNumber,
+        inEndpointNumber,
+        options,
+      );
     } catch (e) {
       // Anything that fails after open() leaves the handle dangling, and on
       // some platforms that is enough to keep the next process out.
@@ -255,6 +296,86 @@ export class UsbTransport implements Transport {
         await this.#transfer(bytes.subarray(at, at + size));
       }
     });
+  }
+
+  /**
+   * Ask the printer how it is doing, over `DLE EOT`.
+   *
+   * Real-time: the printer answers from its firmware rather than from a queue,
+   * so this reports the state of the hardware right now — including while it is
+   * busy printing something else.
+   *
+   * Goes through the same queue as `write`, because a status reply arriving in
+   * the middle of a receipt is a reply nobody can match to a question.
+   */
+  async status(): Promise<PrinterStatus> {
+    assertOpen(this.#closed, 'USB transport');
+    const inEndpoint = this.#inEndpointNumber;
+    if (inEndpoint === undefined) {
+      throw new EscposError('UNSUPPORTED', `${describe(this.device)} has no bulk IN endpoint`, {
+        hint: 'This interface is write-only, so it cannot answer DLE EOT. Bidirectional printers report bInterfaceProtocol = 2. Pass { inEndpointNumber } to override discovery.',
+      });
+    }
+
+    return this.#enqueue(async () => {
+      assertOpen(this.#closed, 'USB transport');
+      // One endpoint, one reply at a time — these cannot overlap.
+      return parseStatus({
+        printer: await this.#query(1, inEndpoint),
+        offline: await this.#query(2, inEndpoint),
+        error: await this.#query(3, inEndpoint),
+        paper: await this.#query(4, inEndpoint),
+      });
+    });
+  }
+
+  /**
+   * One query, retried once.
+   *
+   * A read came back cancelled exactly once during the physical test, with the
+   * printer offline, and answered on the next attempt. A retry costs
+   * milliseconds; reporting a healthy printer as unreachable costs a support
+   * conversation. A reply without the DLE EOT signature is discarded the same
+   * way — it is leftover data, not a status.
+   */
+  async #query(n: 1 | 2 | 3 | 4, inEndpoint: number, attempts = 2): Promise<number> {
+    let last: unknown;
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        await this.#transfer(cmd.statusQuery(n));
+        const reply = await this.#read(inEndpoint);
+        if (isStatusByte(reply)) return reply;
+        last = new Error(`reply 0x${reply.toString(16)} is not a status byte`);
+      } catch (e) {
+        last = e;
+      }
+    }
+    throw new EscposError('OFFLINE', `printer did not answer DLE EOT ${n}`, {
+      cause: last,
+      hint: 'The printer accepted the query but sent nothing back. Some models only answer when bidirectional mode is enabled in their DIP switches or vendor tool.',
+    });
+  }
+
+  /** First byte of the next IN transfer, or a timeout. */
+  async #read(inEndpoint: number): Promise<number> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const result = await Promise.race([
+        this.device.transferIn(inEndpoint, 64),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`no reply within ${this.#statusTimeout}ms`)),
+            this.#statusTimeout,
+          );
+        }),
+      ]);
+      const buffer = result.data?.buffer;
+      if (!buffer || buffer.byteLength === 0) throw new Error('empty reply');
+      return new Uint8Array(buffer)[0]!;
+    } finally {
+      // Without this the process keeps a live timer and refuses to exit.
+      clearTimeout(timer);
+    }
   }
 
   async #transfer(chunk: Uint8Array): Promise<void> {
