@@ -84,3 +84,28 @@ jobs:
       # Guards the one mistake that only shows up after publishing: an entry in
       # `exports` that resolves to a file the build never emitted.
       - run: npm run check:exports
+
+  # The single check branch protection requires.
+  #
+  # Naming the matrix jobs individually would mean that dropping a Node version
+  # leaves its check pending forever, blocking every merge until someone
+  # remembers to edit the branch rules. This one gate depends on all of them, so
+  # the matrix can change freely and protection keeps working.
+  ci:
+    name: ci
+    needs: [test, lint, build]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Fail if anything above failed
+        # `needs` alone does not fail the job when a dependency is skipped or
+        # cancelled, and `if: always()` means this runs regardless — so the
+        # result has to be asserted explicitly.
+        run: |
+          echo "test:  ${{ needs.test.result }}"
+          echo "lint:  ${{ needs.lint.result }}"
+          echo "build: ${{ needs.build.result }}"
+          [ "${{ needs.test.result }}" = "success" ] \
+            && [ "${{ needs.lint.result }}" = "success" ] \
+            && [ "${{ needs.build.result }}" = "success" ]
