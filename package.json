@@ -58,6 +58,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "gen:codepages": "node scripts/gen-codepages.mjs > src/codepage/tables.ts",
+    "check:exports": "node scripts/check-exports.mjs",
     "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "peerDependencies": {
