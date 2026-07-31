@@ -5,8 +5,8 @@ USB** — sem CUPS, sem fila de impressão, sem spooler estragando os seus bytes
 
 > 🇬🇧 [Read in English](README.md)
 
-**Status: início.** O núcleo do encoder está pronto e testado; os transportes
-vêm a seguir.
+**Status: início.** O núcleo do encoder e os transportes estão prontos e
+testados; imagem, código de barras e CLI vêm a seguir.
 
 ```ts
 import { Receipt, mm58 } from 'escpos-direct';
@@ -22,6 +22,15 @@ const nota = new Receipt(mm58)
   .feed();                                   // passa da serrilha
 
 const bytes = nota.encode();                 // Uint8Array — sem hardware nenhum
+```
+
+E aí manda para a impressora:
+
+```ts
+import { UsbTransport } from 'escpos-direct/usb';
+
+await using impressora = await UsbTransport.open();
+await impressora.write(bytes);
 ```
 
 ## Por que não sai acento na minha impressora?
@@ -62,6 +71,52 @@ npm install escpos-direct
 O núcleo tem **zero dependências** e não compila nada. O `usb` é dependência
 opcional, só entra se você usar o transporte USB — e vem com binário pronto, sem
 etapa de compilação.
+
+## Transportes
+
+O encoder é puro e a entrega é trocável: escolher transporte não muda uma linha
+de como a nota é montada.
+
+| Import | Como imprime | Quando usar |
+|---|---|---|
+| `escpos-direct/usb` | Endpoint bulk, via WebUSB | O padrão. O mesmo arquivo roda no Chrome — passe `{ usb: navigator.usb }` |
+| `escpos-direct/cups` | `lp -o raw` | Onde o claim da interface falha: Windows, Linux sem regra udev, fila compartilhada |
+| `escpos-direct/file` | Escreve num caminho | `/dev/usb/lp0` no Linux, ou capturar o payload para comparar |
+
+O `await using` não é enfeite. Ele libera a interface quando o bloco termina, e
+**liberar é a condição para o CUPS continuar funcionando depois**. Sem ele, uma
+exceção no meio da nota deixa a impressora reivindicada até o processo morrer.
+
+```ts
+await using impressora = await UsbTransport.open({ vendorId: 0x09c5 });
+await impressora.write(bytes);
+```
+
+### O erro te diz o que fazer
+
+Toda falha é um `EscposError` com `code` para o programa decidir, `cause` para o
+log e **`hint` para a pessoa** — a frase específica da sua plataforma que, sem
+isso, custa uma tarde de procura:
+
+```ts
+import { isEscposError } from 'escpos-direct';
+
+try {
+  await using impressora = await UsbTransport.open();
+  await impressora.write(bytes);
+} catch (e) {
+  if (!isEscposError(e)) throw e;
+  console.error(e.code);     // 'CLAIM_FAILED'
+  console.error(e.format()); // e, no Linux: "O driver usblp do kernel costuma
+                             //    segurar a interface: sudo modprobe -r usblp"
+}
+```
+
+Códigos: `DEVICE_NOT_FOUND`, `CLAIM_FAILED`, `OUT_OF_PAPER`, `OFFLINE`,
+`WRITE_FAILED`, `UNSUPPORTED`.
+
+> As mensagens e os `hint` saem em inglês, como o resto da API — é lib pública.
+> A explicação em português é esta aqui.
 
 ## USB direto funciona mesmo no macOS?
 

@@ -21,3 +21,12 @@ export {
 } from './codepage/index.js';
 export { sanitize, truncate, wrap, pad, itemLines } from './text.js';
 export * as commands from './commands.js';
+export {
+  EscposError,
+  isEscposError,
+  type EscposErrorCode,
+  type EscposErrorOptions,
+} from './errors.js';
+// The transport contract is pure — the implementations behind it are not, and
+// stay in their own subpaths.
+export { ASYNC_DISPOSE, serialQueue, type Transport } from './transport.js';
