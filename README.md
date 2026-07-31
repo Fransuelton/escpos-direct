@@ -61,7 +61,7 @@ point-of-sale system every day:
 | Maintained | ✅ | ❌ alpha since 2022 | ✅ | ⚠️ 2024 |
 | Direct USB endpoint | ✅ | ✅ | ❌ goes through the OS queue | ❌ no transport |
 | Runs in the browser | ✅ WebUSB | ❌ | ❌ | ✅ encoder only |
-| Reads printer status | ✅ `DLE EOT` | ❌ | ❌ | ❌ |
+| Reads printer status | 🚧 M3 — [measured, not shipped](#printer-status-measured-first) | ❌ | ❌ | ❌ |
 | Code page tables built in | ✅ 7 pages | ⚠️ | ⚠️ | ✅ |
 | TypeScript types | ✅ | ❌ | ⚠️ | ✅ |
 | Dependencies (core) | **0** | many | many | 0 |
@@ -137,6 +137,31 @@ interface is free to claim.
 
 CUPS keeps working afterwards, as long as the interface is released — which the
 transport does for you via `await using`.
+
+## Printer status: measured first
+
+`DLE EOT` reports real physical state, and this is not a claim borrowed from the
+spec — it is three states measured on a YiDa YD583, cover opened and paper
+pulled by hand:
+
+| Query | Closed, paper in | Cover open | No paper, closed |
+|---|---|---|---|
+| `n=1` printer | `0x12` | `0x1a` offline | `0x1a` |
+| `n=2` offline | `0x12` | `0x32` out of paper | `0x32` |
+| `n=3` error | `0x12` | `0x12` | `0x12` |
+| `n=4` sensor | `0x12` | `0x72` out of paper | `0x72` |
+
+Bits 1 and 4 are fixed at 1, which is why `0x12` is the "everything fine"
+baseline.
+
+**Cover open and out of paper are the same byte.** This printer never raises the
+cover-open bit (`0x04` on query 2) that the spec defines — opening the cover
+lifts the paper sensor, and that sensor is the only one it has. So the API
+landing in M3 will report one state and say so, rather than pretend to tell two
+apart. If your printer does raise `0x04`, it will be reported.
+
+The reading API is M3. What is done today is the measurement, and the reason it
+is written down here is that this is the part nobody documents.
 
 ## Roadmap
 

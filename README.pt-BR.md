@@ -136,6 +136,32 @@ dizer que a interface está livre.
 E o CUPS continua funcionando depois, desde que a interface seja liberada — o que
 o transporte faz por você com `await using`.
 
+## Status da impressora: medido, não prometido
+
+O `DLE EOT` responde ao estado físico de verdade — e isto não é a especificação
+repetida, são três estados medidos numa YiDa YD583, abrindo a tampa e tirando o
+rolo na mão:
+
+| Consulta | Fechada, com papel | Tampa aberta | Sem papel, fechada |
+|---|---|---|---|
+| `n=1` status | `0x12` | `0x1a` offline | `0x1a` |
+| `n=2` offline | `0x12` | `0x32` fim de papel | `0x32` |
+| `n=3` erro | `0x12` | `0x12` | `0x12` |
+| `n=4` sensor | `0x12` | `0x72` fim de papel | `0x72` |
+
+Os bits 1 e 4 são fixos em 1 — por isso `0x12` é a base de "está tudo bem".
+
+**Tampa aberta e sem papel dão exatamente o mesmo byte.** Esta impressora nunca
+levanta o bit de tampa aberta (`0x04` na consulta 2) que a especificação define:
+abrir a tampa desarma o sensor de papel, e esse sensor é o único que ela tem.
+Então a API que chega no M3 vai reportar **um** estado e dizer isso, em vez de
+fingir que distingue os dois. Se a sua impressora levantar o `0x04`, aí sim ele
+é reportado.
+
+Essa é a parte que ninguém documenta, e é o motivo de estar escrita aqui: se
+você procurou "impressora térmica diz que está sem papel mas tem papel", a
+resposta provável é que a tampa não fechou direito.
+
 ## Licença
 
 MIT © Fransuelton
