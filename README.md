@@ -1,5 +1,10 @@
 # escpos-direct
 
+[![npm](https://img.shields.io/npm/v/escpos-direct?color=cb3837&logo=npm)](https://www.npmjs.com/package/escpos-direct)
+[![CI](https://github.com/Fransuelton/escpos-direct/actions/workflows/ci.yml/badge.svg)](https://github.com/Fransuelton/escpos-direct/actions/workflows/ci.yml)
+[![runtime dependencies](https://img.shields.io/badge/runtime%20deps-0-brightgreen)](https://www.npmjs.com/package/escpos-direct?activeTab=dependencies)
+[![license](https://img.shields.io/npm/l/escpos-direct?color=blue)](LICENSE)
+
 ESC/POS thermal printing for Node and the browser, writing **straight to the USB
 endpoint** — no CUPS, no print queue, no spooler mangling your bytes.
 
@@ -302,6 +307,11 @@ password for every publish.
 
 Layout logic is a pure function of its input, so almost everything is testable
 without hardware. That is deliberate.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). The most useful contribution is a
+[compatibility report](https://github.com/Fransuelton/escpos-direct/issues/14):
+everything here has been verified on one printer, and ESC/POS is a family of
+dialects.
 
 ## License
 

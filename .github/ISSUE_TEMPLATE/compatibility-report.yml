@@ -1,0 +1,75 @@
+name: Compatibility report
+description: Tell us how this behaves on your printer — success reports matter as much as failures
+title: '[printer] '
+labels: [compatibility]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Everything in this library has been verified on a single printer, so a report
+        here is the most useful thing you can contribute. **Please post even if it
+        all worked** — knowing a model is safe is what lets someone else buy it.
+
+        Escreva em português se preferir.
+
+  - type: input
+    id: printer
+    attributes:
+      label: Printer
+      description: Make and model, plus the vendor:product id from `npx escpos-direct devices`
+      placeholder: YiDa YD583, 09c5:583e
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: Including version and architecture
+      placeholder: macOS 26.5, Apple Silicon
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `npx escpos-direct doctor`
+      description: Paste it whole — the parts that succeeded are as informative as the parts that did not.
+      render: text
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: worked
+    attributes:
+      label: What worked on the test page
+      description: From `npx escpos-direct test`. Leave unchecked whatever failed or you did not try.
+      options:
+        - label: Claimed the interface without root
+        - label: Accents printed correctly
+        - label: The column ruler ended flush with the rules above and below
+        - label: Bold, underline and double size
+        - label: Barcode printed and scans
+        - label: QR code printed and scans
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Does it report status?
+      description: |
+        Run `doctor`, then open the cover or remove the paper and run it again.
+        On the reference printer, cover-open and out-of-paper are indistinguishable —
+        the cover bit never fires.
+      options:
+        - Not tested
+        - No status at all — the printer never answers
+        - Reports status, and cover-open looks identical to out-of-paper
+        - Reports status, and tells cover-open apart from out-of-paper
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: What came out wrong, photos of the paper, a code page that worked better than the default.
