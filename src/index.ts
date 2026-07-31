@@ -27,6 +27,13 @@ export {
   type HriPosition,
 } from './barcode.js';
 export { qr, type QrOptions, type ErrorCorrection } from './qr.js';
+export {
+  raster,
+  toMonochrome,
+  type Bitmap,
+  type Dither,
+  type ImageOptions,
+} from './image.js';
 export * as commands from './commands.js';
 export {
   EscposError,

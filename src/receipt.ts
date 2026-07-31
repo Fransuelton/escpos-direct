@@ -11,6 +11,7 @@
 import { barcode, type BarcodeOptions } from './barcode.js';
 import * as cmd from './commands.js';
 import { encode, selectCodePage, type CodePage } from './codepage/index.js';
+import { raster, type Bitmap, type ImageOptions } from './image.js';
 import { mm58, type Profile } from './profile.js';
 import { qr, type QrOptions } from './qr.js';
 import { itemLines, pad, sanitize, truncate, wrap } from './text.js';
@@ -181,6 +182,22 @@ export class Receipt {
    */
   qr(data: string, options: QrOptions = {}): this {
     return this.#push(qr(data, options));
+  }
+
+  /**
+   * A raster image from RGBA pixels, dithered to one bit.
+   *
+   * Throws when the bitmap is wider than the paper: the printer would silently
+   * clip the overflow, and a logo missing its right edge is easy to miss on a
+   * proof and impossible to explain later. Scale before calling.
+   */
+  image(bitmap: Bitmap, options: ImageOptions = {}): this {
+    if (bitmap.width > this.#profile.dots) {
+      throw new RangeError(
+        `bitmap is ${bitmap.width} dots wide; this profile prints ${this.#profile.dots}. Scale it down before printing.`,
+      );
+    }
+    return this.#push(raster(bitmap, options));
   }
 
   // ── raw / output ─────────────────────────────────────────────────────────
