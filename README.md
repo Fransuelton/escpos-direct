@@ -69,12 +69,15 @@ point-of-sale system every day:
 ## Install
 
 ```bash
-npm install escpos-direct
+npm install escpos-direct            # encoder only — nothing else comes with it
+npm install escpos-direct usb        # ...plus the USB transport
 ```
 
-The core has **zero dependencies** and compiles nothing. `usb` is an optional
-dependency, pulled in only if you use the USB transport — and it ships
-prebuilt binaries, so there is no native build step.
+The core has **zero dependencies** and compiles nothing. `usb` is an *optional
+peer*: you install it yourself, and only if you print over USB. Nobody
+generating bytes in a browser downloads a native module they will never load.
+
+It ships prebuilt binaries, so adding it is still not a build step.
 
 ## Transports
 
