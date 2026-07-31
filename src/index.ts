@@ -20,6 +20,12 @@ export {
   type CodePage,
 } from './codepage/index.js';
 export { sanitize, truncate, wrap, pad, itemLines } from './text.js';
+export {
+  barcode,
+  type BarcodeOptions,
+  type Symbology,
+  type HriPosition,
+} from './barcode.js';
 export * as commands from './commands.js';
 export {
   EscposError,

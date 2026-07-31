@@ -8,6 +8,7 @@
  * The builder deliberately does not format money, dates, or locales. It knows
  * about columns and bytes; what goes in them is the application's business.
  */
+import { barcode, type BarcodeOptions } from './barcode.js';
 import * as cmd from './commands.js';
 import { encode, selectCodePage, type CodePage } from './codepage/index.js';
 import { mm58, type Profile } from './profile.js';
@@ -157,6 +158,18 @@ export class Receipt {
     this.size(scale).bold(true);
     this.line(pad(sanitize(label), sanitize(value), this.columns));
     return this.bold(false).size(1);
+  }
+
+  // ── codes ────────────────────────────────────────────────────────────────
+
+  /**
+   * A barcode. Defaults to CODE128, which handles mixed alphanumerics.
+   *
+   * Throws on data the symbology cannot encode, since a printer handed an
+   * invalid barcode prints nothing and says nothing.
+   */
+  barcode(data: string, options: BarcodeOptions = {}): this {
+    return this.#push(barcode(data, options));
   }
 
   // ── raw / output ─────────────────────────────────────────────────────────
