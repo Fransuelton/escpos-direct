@@ -33,6 +33,34 @@ await using impressora = await UsbTransport.open();
 await impressora.write(bytes);
 ```
 
+## CLI
+
+```bash
+npx escpos-direct doctor           # por que não imprime nesta máquina?
+npx escpos-direct devices          # lista USB e marca quem é classe impressora
+npx escpos-direct test             # página de teste: acento, régua, estilos, códigos
+npx escpos-direct print nota.txt   # ou - para ler do stdin
+npx escpos-direct preview nota.txt # renderiza no terminal, em escala
+```
+
+O `doctor` é a razão de tudo isto existir. Ele percorre ambiente, backend USB,
+dispositivos, o claim, o status ao vivo e as filas do CUPS — e cada falha vem
+com o hint da sua plataforma:
+
+```
+Claim
+✓ Claimed interface 0 without root
+
+Status
+✓ Printer reports ready
+· printer=0x12 offline=0x12 error=0x12 paper=0x12
+```
+
+O `preview` desenha a nota dentro da largura do papel e marca em vermelho
+qualquer linha que estoure, decodificando pela code page — então page errada
+aparece antes de custar papel. Em qualquer comando que imprime, `--file
+saida.bin` grava bytes em vez de papel, e `--cups <fila>` manda pelo CUPS.
+
 ## Por que não sai acento na minha impressora?
 
 Essa é a pergunta que originou o projeto, e ela quase nunca tem resposta em

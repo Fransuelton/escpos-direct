@@ -52,6 +52,9 @@
     },
     "./package.json": "./package.json"
   },
+  "bin": {
+    "escpos-direct": "./dist/cli.mjs"
+  },
   "scripts": {
     "build": "tsdown",
     "test": "vitest run",

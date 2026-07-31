@@ -34,6 +34,34 @@ await using printer = await UsbTransport.open();
 await printer.write(bytes);
 ```
 
+## CLI
+
+```bash
+npx escpos-direct doctor           # why won't it print on this machine?
+npx escpos-direct devices          # list USB devices, flag printer interfaces
+npx escpos-direct test             # test page: accents, ruler, styles, codes
+npx escpos-direct print nota.txt   # or - for stdin
+npx escpos-direct preview nota.txt # render in the terminal, to scale
+```
+
+`doctor` is the reason this exists. It walks the environment, the USB backend,
+the devices, the claim, the live status and the CUPS queues, and every failure
+carries the hint for that platform:
+
+```
+Claim
+✓ Claimed interface 0 without root
+
+Status
+✓ Printer reports ready
+· printer=0x12 offline=0x12 error=0x12 paper=0x12
+```
+
+`preview` frames the receipt at paper width and marks any line that overflows,
+decoding through the code page so a wrong one shows up before it costs paper.
+Add `--file out.bin` to any printing command to write bytes instead of paper, or
+`--cups <queue>` to go through CUPS.
+
 ## Why this exists
 
 Getting a cheap thermal printer working on macOS is a trail of undocumented
@@ -246,7 +274,7 @@ This is the part nobody documents, which is exactly why it is written down here.
 - [x] **M1** — encoder core: columns, wrapping, code pages, profiles
 - [x] **M2** — transports: USB (WebUSB), CUPS fallback, file; typed errors with hints
 - [x] **M3** — `DLE EOT` status, QR codes (PIX), barcodes, images with dithering
-- [ ] **M4** — CLI: `devices`, `doctor`, `test`, `print`, `preview`
+- [x] **M4** — CLI: `devices`, `doctor`, `test`, `print`, `preview`
 - [ ] **M5** — v1.0
 
 `examples/spike.mjs` and `examples/status.mjs` are the raw USB experiments the
